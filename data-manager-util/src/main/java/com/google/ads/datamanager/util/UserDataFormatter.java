@@ -90,6 +90,9 @@ public class UserDataFormatter {
   /** Pattern that matches all uppercase characters. */
   private static final Pattern ALL_UPPERCASE_CHARS_PATTERN = Pattern.compile("^[A-Z]+$");
 
+  /** Pattern that matches all non-alphanumeric characters, except spaces. */
+  private static final Pattern SYMBOL_PATTERN = Pattern.compile("[^\\p{L}\\p{N}\\s]");
+
   private UserDataFormatter(MessageDigest sha256Digest) {
     this.sha256Digest = sha256Digest;
   }
@@ -265,6 +268,55 @@ public class UserDataFormatter {
     postalCode = postalCode.trim();
     Preconditions.checkArgument(!postalCode.isEmpty(), "Empty or blank postal code");
     return postalCode;
+  }
+
+  /**
+   * Returns the normalized and formatted location string.
+   *
+   * @param value the string to format
+   * @param label the label used for error messages
+   * @throws IllegalArgumentException if {@code value} is invalid. Examples of an invalid value
+   *     include a {@code null}, blank, or empty string.
+   */
+  private String formatLocationString(String value, String label) {
+    Preconditions.checkArgument(value != null, "Null %s", label);
+    value = value.trim().toLowerCase(LOCALE);
+    value = SYMBOL_PATTERN.matcher(value).replaceAll("");
+    Preconditions.checkArgument(!value.isEmpty(), "Empty or blank %s", label);
+    return value;
+  }
+
+  /**
+   * Returns the provided address line, normalized and formatted.
+   *
+   * @param addressLine the address line to format
+   * @throws IllegalArgumentException if {@code addressLine} is invalid. Examples of an invalid value
+   *     include a {@code null}, blank, or empty string.
+   */
+  public String formatAddressLine(String addressLine) {
+    return formatLocationString(addressLine, "address line");
+  }
+
+  /**
+   * Returns the provided city, normalized and formatted.
+   *
+   * @param city the city to format
+   * @throws IllegalArgumentException if {@code city} is invalid. Examples of an invalid value
+   *     include a {@code null}, blank, or empty string.
+   */
+  public String formatCity(String city) {
+    return formatLocationString(city, "city");
+  }
+
+  /**
+   * Returns the provided administrative area, normalized and formatted.
+   *
+   * @param administrativeArea the administrative area to format
+   * @throws IllegalArgumentException if {@code administrativeArea} is invalid. Examples of an invalid value
+   *     include a {@code null}, blank, or empty string.
+   */
+  public String formatAdministrativeArea(String administrativeArea) {
+    return formatLocationString(administrativeArea, "administrative area");
   }
 
   /**
@@ -472,6 +524,75 @@ public class UserDataFormatter {
    */
   public String processPostalCode(String postalCode) {
     return formatPostalCode(postalCode);
+  }
+
+  /**
+   * Formats the address line, hashes, and encodes using the specified encoding.
+   *
+   * <p>This is a convenience method that combines {@link #formatAddressLine(String)}, {@link
+   * #hashString(String)}, and either {@link #hexEncode(byte[])} or {@link #base64Encode(byte[])}
+   * into a single call.
+   *
+   * @return the address line, formatted, hashed, and encoded for the {@code AddressInfo.address_line}
+   *     field in the API.
+   * @throws IllegalArgumentException if the address line is invalid
+   */
+  public String processAddressLine(String addressLine, Encoding encoding) {
+    return hashAndEncode(formatAddressLine(addressLine), encoding);
+  }
+
+  /**
+   * Formats the address line, hashes, base 64-encodes, encrypts, and encodes using the specified
+   * encoding.
+   *
+   * <p>This is a convenience method that combines {@link #formatAddressLine(String)}, {@link
+   * #hashString(String)}, {@link #base64Encode(byte[])}, {@link Encrypter#encrypt(String)}, and
+   * either {@link #hexEncode(byte[])} or {@link #base64Encode(byte[])} into a single call.
+   *
+   * @return the address line, formatted, hashed, encrypted, and encoded for the {@code
+   *     AddressInfo.address_line} field in the API.
+   * @throws IllegalArgumentException if the address line is invalid
+   * @throws NullPointerException if {@code encrypter} is null
+   */
+  public String processAddressLine(String addressLine, Encoding encoding, Encrypter encrypter) {
+    Preconditions.checkNotNull(encrypter, "Null encrypter");
+    return hashEncodeAndEncrypt(formatAddressLine(addressLine), encoding, encrypter);
+  }
+
+  /**
+   * Processes the city.
+   *
+   * <p>This is a convenience method that simply calls {@link #formatCity(String)}. This
+   * method exists for consistency so that all data types have a {@code process...} method.
+   *
+   * <p>Doesn't require an {@link Encoding} since cities shouldn't be encoded or hashed.
+   *
+   * <p>There is no overloaded counterpart that takes an {@link Encrypter} since cities
+   * shouldn't be encrypted.
+   *
+   * @return the city, formatted for the {@code AddressInfo.city} field in the API.
+   * @throws IllegalArgumentException if the city is invalid
+   */
+  public String processCity(String city) {
+    return formatCity(city);
+  }
+
+  /**
+   * Processes the administrative area.
+   *
+   * <p>This is a convenience method that simply calls {@link #formatAdministrativeArea(String)}. This
+   * method exists for consistency so that all data types have a {@code process...} method.
+   *
+   * <p>Doesn't require an {@link Encoding} since administrative areas shouldn't be encoded or hashed.
+   *
+   * <p>There is no overloaded counterpart that takes an {@link Encrypter} since administrative areas
+   * shouldn't be encrypted.
+   *
+   * @return the administrative area, formatted for the {@code AddressInfo.administrative_area} field in the API.
+   * @throws IllegalArgumentException if the administrative area is invalid
+   */
+  public String processAdministrativeArea(String administrativeArea) {
+    return formatAdministrativeArea(administrativeArea);
   }
 
   /**
