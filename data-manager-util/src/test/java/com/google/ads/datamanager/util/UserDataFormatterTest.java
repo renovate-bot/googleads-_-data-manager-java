@@ -239,6 +239,72 @@ public class UserDataFormatterTest {
   }
 
   @Test
+  public void testFormatAddressLine_validInputs() {
+    assertEquals("1800 amphibious blvd", formatter.formatAddressLine(" 1800 Amphibious Blvd.  "));
+  }
+
+  @Test
+  public void testFormatAddressLine_invalidInputs() {
+    assertThrows(
+        "Null address line",
+        IllegalArgumentException.class,
+        () -> formatter.formatAddressLine(null));
+    assertThrows(
+        "Empty address line",
+        IllegalArgumentException.class,
+        () -> formatter.formatAddressLine(""));
+    assertThrows(
+        "Blank address line",
+        IllegalArgumentException.class,
+        () -> formatter.formatAddressLine("   "));
+  }
+
+  @Test
+  public void testFormatCity_validInputs() {
+    assertEquals("mountain view", formatter.formatCity(" Mountain View  "));
+    assertEquals("mountain view", formatter.formatCity("Mountain View,"));
+  }
+
+  @Test
+  public void testFormatCity_invalidInputs() {
+    assertThrows(
+        "Null city",
+        IllegalArgumentException.class,
+        () -> formatter.formatCity(null));
+    assertThrows(
+        "Empty city",
+        IllegalArgumentException.class,
+        () -> formatter.formatCity(""));
+    assertThrows(
+        "Blank city",
+        IllegalArgumentException.class,
+        () -> formatter.formatCity("   "));
+  }
+
+  @Test
+  public void testFormatAdministrativeArea_validInputs() {
+    assertEquals("ca", formatter.formatAdministrativeArea(" CA  "));
+    assertEquals("california", formatter.formatAdministrativeArea(" California  "));
+    assertEquals("ca", formatter.formatAdministrativeArea("CA,"));
+  }
+
+  @Test
+  public void testFormatAdministrativeArea_invalidInputs() {
+    assertThrows(
+        "Null administrative area",
+        IllegalArgumentException.class,
+        () -> formatter.formatAdministrativeArea(null));
+    assertThrows(
+        "Empty administrative area",
+        IllegalArgumentException.class,
+        () -> formatter.formatAdministrativeArea(""));
+    assertThrows(
+        "Blank administrative area",
+        IllegalArgumentException.class,
+        () -> formatter.formatAdministrativeArea("   "));
+  }
+
+  @Test
   public void testHashString_validInputs() {
     Function<String, String> hashAndEncode = s -> hexEncoder.encode(formatter.hashString(s));
     assertEquals(
@@ -247,6 +313,9 @@ public class UserDataFormatterTest {
     assertEquals(
         "FB4F73A6EC5FDB7077D564CDD22C3554B43CE49168550C3B12C547B78C517B30",
         hashAndEncode.apply("+18005550100"));
+    assertEquals(
+        "FF75E73A0E768CC1FA28A64FAEBBCECCB562D7C05F2FFCDD8D100ABAD73E4579",
+        hashAndEncode.apply("1800 amphibious blvd"));
   }
 
   @Test
@@ -376,5 +445,31 @@ public class UserDataFormatterTest {
   public void testProcessPostalCode_validInputs() {
     assertEquals("1229-076", formatter.formatPostalCode("1229-076"));
     assertEquals("1229-076", formatter.formatPostalCode(" 1229-076  "));
+  }
+
+  @Test
+  public void testProcessAddressLine_validInputs_hexEncoding() {
+    final String encodedHash = "FF75E73A0E768CC1FA28A64FAEBBCECCB562D7C05F2FFCDD8D100ABAD73E4579";
+    assertEquals(
+        encodedHash,
+        formatter.processAddressLine(" 1800 Amphibious Blvd.  ", Encoding.HEX));
+  }
+
+  @Test
+  public void testProcessAddressLine_validInputs_base64Encoding() {
+    final String encodedHash = "/3XnOg52jMH6KKZPrrvOzLVi18BfL/zdjRAKutc+RXk=";
+    assertEquals(
+        encodedHash,
+        formatter.processAddressLine(" 1800 Amphibious Blvd.  ", Encoding.BASE64));
+  }
+
+  @Test
+  public void testProcessCity_validInputs() {
+    assertEquals("mountain view", formatter.processCity(" Mountain View  "));
+  }
+
+  @Test
+  public void testProcessAdministrativeArea_validInputs() {
+    assertEquals("ca", formatter.processAdministrativeArea(" CA  "));
   }
 }
