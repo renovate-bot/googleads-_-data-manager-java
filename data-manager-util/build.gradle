@@ -17,6 +17,13 @@
 plugins {
     id 'java-library'
     id 'maven-publish'
+    id 'signing'
+    id 'com.google.cloud.artifactregistry.gradle-plugin' version '2.2.5' apply false
+}
+
+def isPublishing = gradle.startParameter.taskNames.any { it.endsWith('publish') || it.contains('ArtifactRegistry') }
+if (isPublishing) {
+    apply plugin: 'com.google.cloud.artifactregistry.gradle-plugin'
 }
 
 group = 'com.google.api-ads'
@@ -26,10 +33,65 @@ version = '0.4.0'
 java {
     sourceCompatibility = JavaVersion.VERSION_1_8
     targetCompatibility = JavaVersion.VERSION_1_8
+    withSourcesJar()
+    withJavadocJar()
 }
 
-publishing.publications {
-    library(MavenPublication).from components.java
+publishing {
+    publications {
+        library(MavenPublication) {
+            from components.java
+            pom {
+                name = 'Google Data Manager API Utilities'
+                description = 'Utilities for working with the Data Manager API'
+                url = 'https://github.com/googleads/data-manager-java'
+                licenses {
+                    license {
+                        name = 'The Apache License, Version 2.0'
+                        url = 'https://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
+                developers {
+                    developer {
+                        id = 'josh'
+                        name = 'Josh Radcliff'
+                        email = 'jradcliff@users.noreply.github.com'
+                        organization = 'Google'
+                        organizationUrl = 'https://www.google.com'
+                    }
+                    developer {
+                        id = 'lindsey'
+                        name = 'Lindsey Volta'
+                        email = 'lindsey-volta@users.noreply.github.com'
+                        organization = 'Google'
+                        organizationUrl = 'https://www.google.com'
+                    }
+                }
+                scm {
+                    connection = 'scm:git:git://github.com/googleads/data-manager-java.git'
+                    developerConnection = 'scm:git:ssh://github.com:googleads/data-manager-java.git'
+                    url = 'https://github.com/googleads/data-manager-java'
+                }
+            }
+        }
+    }
+    repositories {
+        if (isPublishing) {
+            maven {
+                name = 'ExitGateArtifactRegistry'
+                url = uri(findProperty('artifact-registry-url') ?: "artifactregistry://us-maven.pkg.dev/oss-exit-gate-prod/measurement-devrel--mavencentral")
+            }
+        }
+    }
+}
+
+signing {
+    def signingKey = findProperty("signingKey") ?: System.getenv("SIGNING_KEY")
+    def signingPassword = findProperty("signingPassword") ?: System.getenv("SIGNING_PASSWORD")
+    if (signingKey) {
+        useInMemoryPgpKeys(signingKey, signingPassword)
+        sign publishing.publications.library
+    }
 }
 
 // Creates install "alias".
