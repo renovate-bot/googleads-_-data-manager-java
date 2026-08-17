@@ -28,13 +28,20 @@ if (isPublishing) {
 
 group = 'com.google.api-ads'
 description = 'Utilities for working with the Data Manager API'
-version = '0.4.0'
+version = '0.4.0rc1'
 
 java {
     sourceCompatibility = JavaVersion.VERSION_1_8
     targetCompatibility = JavaVersion.VERSION_1_8
     withSourcesJar()
     withJavadocJar()
+}
+
+tasks.withType(Javadoc) {
+    // Silences Oracle JDK doclint's -Xdoclint:missing check to avoid adding boilerplate
+    // @param and @return tags with redundant descriptions (see Google Java Style Guide
+    // Section 7.1.3: https://google.github.io/styleguide/javaguide.html#s7.1.3-javadoc-block-tags).
+    options.addStringOption('Xdoclint:all,-missing', '-quiet')
 }
 
 publishing {
